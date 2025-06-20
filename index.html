@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>إدارة مناشير التفتيش</title>
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      margin: 0;
+      background-color: #f3f4f6;
+    }
+
+    .login-container,
+    .app-container {
+      max-width: 700px;
+      margin: 50px auto;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    h1, h2 {
+      text-align: center;
+      color: #1f2937;
+    }
+
+    input[type="text"], input[type="number"], input[type="password"] {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    button {
+      padding: 10px 20px;
+      margin-top: 10px;
+      margin-left: 10px;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+
+    .btn-primary {
+      background-color: #2563eb;
+      color: white;
+    }
+
+    .btn-secondary {
+      background-color: #d1d5db;
+      color: black;
+    }
+
+    .btn-danger {
+      background-color: #ef4444;
+      color: white;
+    }
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: right;
+    }
+
+    th {
+      background-color: #f9fafb;
+    }
+
+    .status-badge.completed {
+      background-color: #dcfce7;
+      color: #16a34a;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    .status-badge.pending {
+      background-color: #fee2e2;
+      color: #dc2626;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 20px;
+    }
+
+    .stat-box {
+      text-align: center;
+    }
+
+    .stat-box span {
+      font-size: 2rem;
+      font-weight: bold;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <!-- Login Page -->
+  <div class="login-container" id="loginPage">
+    <h1>تسجيل الدخول</h1>
+    <form onsubmit="handleLogin(event)">
+      <label>اسم المستخدم:</label><br/>
+      <input type="text" id="username" required/><br/>
+      <label>كلمة المرور:</label><br/>
+      <input type="password" id="password" required/><br/>
+      <button type="submit" class="btn-primary">دخول</button>
+    </form>
+  </div>
+
+  <!-- Main App (Hidden by default) -->
+  <div class="app-container" id="mainApp" style="display:none;">
+    <h1>إدارة مناشير التفتيش</h1>
+
+    <!-- Statistics -->
+    <div class="stats">
+      <div class="stat-box">
+        <span id="total">0</span>
+        <small>إجمالي الأشخاص</small>
+      </div>
+      <div class="stat-box">
+        <span id="completed">0</span>
+        <small>مكتمل</small>
+      </div>
+      <div class="stat-box">
+        <span id="pending">0</span>
+        <small>في الانتظار</small>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div>
+      <input type="text" placeholder="ابحث عن شخص..." oninput="handleSearch(this.value)" />
+    </div>
+
+    <!-- Form -->
+    <form onsubmit="handleSubmit(event)">
+      <input type="hidden" id="id"/>
+
+      <label>الرقم المتسلسل:</label>
+      <input type="number" id="serialNumber" required />
+
+      <label>الاسم و اللقب:</label>
+      <input type="text" id="name" required />
+
+      <label>تاريخ رجوع الإعلام:</label>
+      <input type="text" id="returnDate" placeholder="مثال: 12/31/24" />
+
+      <label>تاريخ الجلسة:</label>
+      <input type="text" id="sessionDate" placeholder="مثال: 12/31/24" required />
+
+      <label>عدد القضية:</label>
+      <input type="text" id="caseNumber" required />
+
+      <label>تاريخ المنشور:</label>
+      <input type="text" id="noticeDate" placeholder="مثال: 12/31/24" required />
+
+      <label>عدد المنشور:</label>
+      <input type="number" id="noticeNumber" required />
+
+      <label><input type="checkbox" id="inspectionLifted" onchange="toggleLiftFields()"/> تم كف التفتيش</label>
+
+      <div id="liftFields" style="margin-top: 10px; display: none;">
+        <label>تاريخ الكف:</label>
+        <input type="text" id="liftDate" placeholder="مثال: 12/31/24" />
+
+        <label>السبب:</label>
+        <input type="text" id="reason" />
+      </div>
+
+      <button type="submit" class="btn-primary">إضافة</button>
+      <button type="button" class="btn-secondary" onclick="resetForm()">إعادة تعيين</button>
+    </form>
+
+    <!-- Table -->
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+          <th>الرقم المتسلسل</th>
+          <th>الاسم و اللقب</th>
+          <th>تاريخ رجوع الإعلام</th>
+          <th>تاريخ الجلسة</th>
+          <th>عدد القضية</th>
+          <th>تاريخ المنشور</th>
+          <th>عدد المنشور</th>
+          <th>حالة التفتيش</th>
+          <th>الإجراءات</th>
+        </tr>
+        </thead>
+        <tbody id="data-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const initialData = [
+      { id: 1, serialNumber: 1, name: "عبد الرزاق خضر", returnDate: "6/9/20", sessionDate: "2/25/20", caseNumber: "1123/19", noticeDate: "3/23/21", noticeNumber: 265, inspectionLifted: false, liftDate: "", reason: "", status: "مكتمل" },
+      { id: 2, serialNumber: 2, name: "نصر الدين بنعمارة", returnDate: "", sessionDate: "2/25/20", caseNumber: "1126/19", noticeDate: "3/23/21", noticeNumber: 268, inspectionLifted: false, liftDate: "", reason: "", status: "في الانتظار" },
+      { id: 3, serialNumber: 3, name: "عبد الرحمان بن فرح", returnDate: "", sessionDate: "5/6/25", caseNumber: "2019/25", noticeDate: "5/22/25", noticeNumber: 1036, inspectionLifted: false, liftDate: "", reason: "", status: "في الانتظار" },
+      { id: 4, serialNumber: 4, name: "فرح الشبالي", returnDate: "6/5/20", sessionDate: "2/25/20", caseNumber: "1133/19", noticeDate: "3/23/21", noticeNumber: 271, inspectionLifted: false, liftDate: "", reason: "", status: "مكتمل" },
+      { id: 5, serialNumber: 5, name: "نجيب بن عبد القادر", returnDate: "", sessionDate: "3/10/20", caseNumber: "1249/19", noticeDate: "3/23/21", noticeNumber: 274, inspectionLifted: false, liftDate: "", reason: "", status: "في الانتظار" }
+    ];
+
+    let data = [...initialData];
+    let editingIndex = -1;
+
+    function handleLogin(e) {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      if (username === "admin" && password === "1234") {
+        document.getElementById("loginPage").style.display = "none";
+        document.getElementById("mainApp").style.display = "block";
+        renderTable(data);
+        updateStats();
+      } else {
+        alert("اسم المستخدم أو كلمة المرور غير صحيحة");
+      }
+    }
+
+    function handleSubmit(e) {
+      e.preventDefault();
+
+      const item = {
+        id: Date.now(),
+        serialNumber: document.getElementById('serialNumber').value,
+        name: document.getElementById('name').value,
+        returnDate: document.getElementById('returnDate').value,
+        sessionDate: document.getElementById('sessionDate').value,
+        caseNumber: document.getElementById('caseNumber').value,
+        noticeDate: document.getElementById('noticeDate').value,
+        noticeNumber: document.getElementById('noticeNumber').value,
+        inspectionLifted: document.getElementById('inspectionLifted').checked,
+        liftDate: document.getElementById('liftDate').value,
+        reason: document.getElementById('reason').value,
+        status: document.getElementById('returnDate').value ? "مكتمل" : "في الانتظار"
+      };
+
+      if (editingIndex >= 0) {
+        data[editingIndex] = item;
+        editingIndex = -1;
+      } else {
+        data.push(item);
+      }
+
+      resetForm();
+      renderTable(data);
+      updateStats();
+    }
+
+    function toggleLiftFields() {
+      const checked = document.getElementById('inspectionLifted').checked;
+      document.getElementById('liftFields').style.display = checked ? 'block' : 'none';
+    }
+
+    function handleEdit(index) {
+      const item = data[index];
+      editingIndex = index;
+      document.getElementById('id').value = item.id;
+      document.getElementById('serialNumber').value = item.serialNumber;
+      document.getElementById('name').value = item.name;
+      document.getElementById('returnDate').value = item.returnDate;
+      document.getElementById('sessionDate').value = item.sessionDate;
+      document.getElementById('caseNumber').value = item.caseNumber;
+      document.getElementById('noticeDate').value = item.noticeDate;
+      document.getElementById('noticeNumber').value = item.noticeNumber;
+      document.getElementById('inspectionLifted').checked = item.inspectionLifted;
+      document.getElementById('liftDate').value = item.liftDate;
+      document.getElementById('reason').value = item.reason;
+      toggleLiftFields();
+    }
+
+    function handleDelete(index) {
+      if (confirm("هل أنت متأكد من رغبتك في حذف هذا الشخص؟")) {
+        data.splice(index, 1);
+        renderTable(data);
+        updateStats();
+      }
+    }
+
+    function handleSearch(term) {
+      const filtered = data.filter(item => item.name.toLowerCase().includes(term.toLowerCase()));
+      renderTable(filtered);
+    }
+
+    function renderTable(items) {
+      const tbody = document.getElementById("data-table-body");
+      tbody.innerHTML = "";
+
+      items.forEach((item, index) => {
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+          <td>${item.serialNumber}</td>
+          <td>${item.name}</td>
+          <td>${item.returnDate || "-"}</td>
+          <td>${item.sessionDate}</td>
+          <td>${item.caseNumber}</td>
+          <td>${item.noticeDate}</td>
+          <td>${item.noticeNumber}</td>
+          <td><span class="status-badge ${item.status === "مكتمل" ? "completed" : "pending"}">${item.status}</span></td>
+          <td>
+            <button onclick="handleEdit(${index})">تعديل</button>
+            <button class="btn-danger" onclick="handleDelete(${index})">حذف</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateStats() {
+      document.getElementById("total").innerText = data.length;
+      document.getElementById("completed").innerText = data.filter(d => d.status === "مكتمل").length;
+      document.getElementById("pending").innerText = data.filter(d => d.status === "في الانتظار").length;
+    }
+
+    function resetForm() {
+      document.getElementById('id').value = "";
+      document.getElementById('serialNumber').value = "";
+      document.getElementById('name').value = "";
+      document.getElementById('returnDate').value = "";
+      document.getElementById('sessionDate').value = "";
+      document.getElementById('caseNumber').value = "";
+      document.getElementById('noticeDate').value = "";
+      document.getElementById('noticeNumber').value = "";
+      document.getElementById('inspectionLifted').checked = false;
+      document.getElementById('liftDate').value = "";
+      document.getElementById('reason').value = "";
+      document.getElementById('liftFields').style.display = "none";
+    }
+  </script>
+</div>
+
+</body>
+</html>
